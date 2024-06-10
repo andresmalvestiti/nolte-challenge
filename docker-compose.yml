@@ -1,0 +1,6 @@
+
+services:
+  fit-assistant:
+    build: "./fit-assistant"
+    ports:
+      - "3000:3000"
