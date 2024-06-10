@@ -7,19 +7,29 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      - DATABASE_URL=postgresql://${PG_USER-fitness}:${PG_DATABASE:-fitness}@db:$PG_PORT/${PG_DATABASE:-fitness_db}
+      - PG_DATABASE=${PG_DATABASE:-fitness_db}
+      - PG_USER=${PG_USER:-fitness}
+      - PG_PASSWORD=${PG_PASSWORD:-fitness}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_PROJECT_KEY=${OPENAI_PROJECT_KEY}
+      - OPENAI_ASSISTANT_ID=${OPENAI_ASSISTANT_ID}
+      - AWS_BUCKET_NAME=workouts 
     depends_on:
       db:
         condition: service_healthy
+      localstack:
+        condition: service_healthy
+      create-bucket:
+        condition: service_completed_successfully
 
   db:
     image: postgres:16
     restart: always
     container_name: db
     environment:
-      - POSTGRES_DB=${PG_DATABASE:-pokemon}
-      - POSTGRES_USER=${PG_USER:-pokemon}
-      - POSTGRES_PASSWORD=${PG_DATABASE:-pokemon}
+      - POSTGRES_DB=${PG_DATABASE:-fitness_db}
+      - POSTGRES_USER=${PG_USER:-fitness}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-fitness}
     ports:
       - "${PG_PORT:-5432}:5432"
     volumes:
@@ -31,5 +41,37 @@ services:
       timeout: 20s
       retries: 3
 
+  localstack:
+    image: localstack/localstack
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - AWS_REGION=us-east-1
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  create-bucket:
+    image: amazon/aws-cli
+    container_name: create-bucket
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "aws --endpoint-url=http://localstack:4566 s3api create-bucket --bucket workouts --region us-east-1"
+    depends_on:
+      localstack:
+        condition: service_completed_successfully
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+
 volumes:
   postgres-data:
+  localstack-data:
