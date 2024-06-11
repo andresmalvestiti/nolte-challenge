@@ -11,8 +11,6 @@ services:
       - PG_USER=${PG_USER:-fitness}
       - PG_PASSWORD=${PG_PASSWORD:-fitness}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_PROJECT_KEY=${OPENAI_PROJECT_KEY}
-      - OPENAI_ASSISTANT_ID=${OPENAI_ASSISTANT_ID}
       - AWS_BUCKET_NAME=workouts 
     depends_on:
       db:
